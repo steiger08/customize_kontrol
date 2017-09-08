@@ -10,16 +10,24 @@ STORAGE_FILENAME = "configuration.sav"
 class kontrol_main:
     def __init__(self):
 
-        confIO = config_io.ConfigIO()
-        confObj = confIO.restore(STORAGE_FILENAME)
-        conf = config.Config(confObj)
+        self.database = {"when_im_alone" : {"name" : {"When I'm Alone"}, "control_sound" : 1}, \
+                        "beautiful_day" : {"name" : {"Beautiful Day"}, "control_sound" : 2}}
 
-        view1 = gui.instrument_view(conf)
-        control1 = gui.instrument_controller(view1)
+        self.setlist = ["when_im_alone", "beautiful_day"]
 
-        usb_input = usb_reader.USBReader(control1)
+        namelist = []
 
-        view1.setup()
-        usb_input.run()
+        for so in self.setlist:
+            namelist += self.database[so]["name"]
+            
+        controller = gui.instrument_controller(self.setlist, namelist, self)
+
+        usb = usb_reader.USBReader(controller)
+
+        usb.start()
+        controller.start()
+        
+    def setActiveInstrument(self, instrumentId):
+        print(instrumentId)
 
 kontrol_main()

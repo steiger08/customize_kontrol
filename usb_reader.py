@@ -1,7 +1,7 @@
 import usb.core
 import usb.util
-
-class USBReader:
+import threading
+class USBReader(threading.Thread):
 
     def __init__(self, usb_event_handler):
         self.device = usb.core.find(idVendor=0x17CC, idProduct=0x1410)
@@ -18,14 +18,21 @@ class USBReader:
 
         self.wheel = 0
         self.evt_hdlr = usb_event_handler
-        
+
+        threading.Thread.__init__(self)
+
     def run(self):
         while True:
             try:
                 data = self.device.read(0x82, 0x40, 0)
                 if(data[0] == 1):
-                    if(data[6] != self.wheel):
-                        if(data[6] > self.wheel):
+                    wheeldiff = data[6] - self.wheel
+                    if(wheeldiff != 0):
+                        if(wheeldiff > 8):
+                            wheeldiff = -1
+                        if(wheeldiff < -8):
+                            wheeldiff = 1
+                        if(wheeldiff > 0):
                             self.evt_hdlr.wheelRight()
                         else:
                             self.evt_hdlr.wheelLeft()
@@ -46,8 +53,8 @@ class USBReader:
 ##                        print("rec button")
 ##                    if(data[2] == 4):
 ##                        print("play button")
-##                    if(data[1] == 1):
-##                        print("wheel button")
+                    if(data[1] == 1):
+                        self.evt_hdlr.wheelButton()
 ##                    if(data[1] == 32):
 ##                        print("instance button")
 ##                    if(data[1] == 16):
