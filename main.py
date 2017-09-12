@@ -2,12 +2,17 @@ import config
 import gui
 import config_io
 import usb_reader
-import midi_router
+import midi_output
 import midi_event_sender
+import midi_key_router
+import hmi_event_interpreter
 
 from threading import Thread
 
 STORAGE_FILENAME = "configuration.sav"
+
+DEVICE_VENDOR_ID = 0x17CC
+DEVICE_PRODUCT_ID = 0x1410
 
 class kontrol_main:
     def __init__(self):
@@ -15,12 +20,12 @@ class kontrol_main:
         self.database = {"when_im_alone" : {"name" : {"When I'm Alone"}, "midi_program" : 3}, \
                         "beautiful_day" : {"name" : {"Beautiful Day"}, "midi_program" : 0}, \
                          "im_all_over_it" : {"name" : {"I'm all over it"}, "midi_program" : 2}, \
-                         "broken_wings" : {"name" : {"Broken Wings"}, "midi_program" : 1}}
+                         "broken_wings" : {"name" : {"Broken Wings"}, "midi_program" : 1}, \
+                         "story" : {"name" : {"Story"}, "midi_program" : 4, "add_sound" : {"midi2"}}}
 
-        self.setlist = ["im_all_over_it", "beautiful_day", "broken_wings", "when_im_alone"]
 
-        input_names = ["Komplete Kontrol - 1"]
-        output_names = ["midi1"]
+        self.setlist = ["story", "beautiful_day", "broken_wings", "when_im_alone", "im_all_over_it"]
+
 
         namelist = []
 
@@ -29,28 +34,41 @@ class kontrol_main:
             
         self.controller = gui.instrument_controller(self.setlist, namelist, self)
 
-        self.usb = usb_reader.USBReader(self.controller)
-        self.midi_io = midi_router.MidiRouter()
 
-        for i in input_names:
-            self.midi_io.add_midi_device(i, "input")
+        self.usb = usb_reader.USBReader(DEVICE_VENDOR_ID, DEVICE_PRODUCT_ID)
+        self.midi_out = midi_output.MidiRouter()
 
-        for o in output_names:
-            self.midi_io.add_midi_device(o, "output")
-            self.midi_io.activate_midi_key_route(o)
-            self.midi_io.activate_midi_control_route(o)
+        midi_router = midi_key_router.MIDIKeyRouter(self.midi_out)
+        hmi_interpreter = hmi_event_interpreter.HMIEventInterpreter(self.controller)
 
-        self.midi_sender = midi_event_sender.MidiEventSender(self.midi_io)
+        self.usb.add_midi_key_subscriber(midi_router)
+        self.usb.add_hmi_subscriber(hmi_interpreter)
+
+
+
+        self.midi_out.add_midi_device("midi1")
+        self.midi_out.add_midi_device("midi2")
+        
+        self.midi_out.activate_midi_key_route("midi1")
+        self.midi_out.activate_midi_control_route("midi1")
+
+        self.midi_sender = midi_event_sender.MidiEventSender(self.midi_out)
 
     def start(self):
 
         self.usb.start()
-        #self.midi_io.start()
-        #self.controller.start()
+        self.controller.start()
 
     def setActiveInstrument(self, instrument):
         program_id = self.database[instrument]["midi_program"]
+
+        self.midi_sender.set_pedal_off()
         self.midi_sender.set_program_event(program_id)
+
+        if("add_sound" in self.database[instrument].keys()):
+            self.midi_out.activate_midi_key_route("midi2")
+        else:
+            self.midi_out.deactivate_midi_key_route("midi2")
 
 main = kontrol_main()
 main.start()

@@ -57,10 +57,10 @@ class USBReader():
         self.midi_control_subscriber.append(subscriber)
 
     def handle_midi_event(self, event):
-        print(event)
         if(event[1] == 144 or \
            event[1] == 128 or \
-           event[1] == 208):
+           event[1] == 208 or \
+           event[1] == 176):
                self.informSubscribers(self.midi_key_subscriber, event)
         else:
                self.informSubscribers(self.midi_control_subscriber, event)

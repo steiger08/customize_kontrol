@@ -8,7 +8,7 @@ import rtmidi
 import threading
 import time
 
-class MidiRouter(threading.Thread):
+class MidiRouter():
     def __init__(self):
         
         pygame.init()
@@ -58,12 +58,14 @@ class MidiRouter(threading.Thread):
             if(status):
                 self.active_key_outputs[name] = self.outputs[name]
             else:
-                del self.active_key_outputs[name]
+                if(name in self.active_key_outputs.keys()):
+                    del self.active_key_outputs[name]
         else:
             if(status):
                 self.active_control_outputs[name] = self.outputs[name]
             else:
-                del self.active_control_outputs[name]
+                if(name in self.active_control_outputs.keys()):
+                    del self.active_control_outputs[name]
 
     # display a list of MIDI devices connected to the computer
     def print_device_info(self):
@@ -80,12 +82,11 @@ class MidiRouter(threading.Thread):
 
     def send_control_event(self, midi_event):
         for key, o in self.active_control_outputs.items():
-            o.write([midi_event])
+            o.write(midi_event)
             
     def send_key_event(self, midi_event):
         for key, o in self.active_key_outputs.items():
-            o.write([midi_event])
-
+            o.write(midi_event)
 
 
 

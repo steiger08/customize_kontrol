@@ -16,6 +16,7 @@ class instrument_view():
         txtbg = "#59685c"
         
         self.listbox = Listbox(self.master, \
+                               name = "lb", \
                                font = listFont, \
                                activestyle = DOTBOX, \
                                selectborderwidth = 2, \
@@ -23,8 +24,11 @@ class instrument_view():
                                setgrid = 4, \
                                highlightcolor = highcol, \
                                highlightthickness = 3, \
-                               bg = bgcol)
+                               bg = bgcol, \
+                               exportselection = 0)
         
+        self.listbox.bind('<<ListboxSelect>>', self.onselect)
+
         for item in self.namelist:
             self.listbox.insert(END, item)
 
@@ -63,6 +67,13 @@ class instrument_view():
         self.selLabelText.set(self.namelist[self.index])
         self.controller.instrumentSelectionChanged(self.index)
         self.master.update()
+
+    #on click selection callback
+    def onselect(self, evt):
+        w = evt.widget
+        self.index = int(w.curselection()[0])
+        self.changeSelection(0)
+        self.activateCurrent()
 
 class instrument_controller:
     def __init__(self, idlist, namelist, event_hdlr):

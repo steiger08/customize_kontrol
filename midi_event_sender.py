@@ -1,4 +1,4 @@
-import midi_router
+import midi_output
 import time
 
 class MidiEventSender:
@@ -8,6 +8,11 @@ class MidiEventSender:
     def set_program_event(self, program_value):
         print("Setting program to ", program_value)
 
-        event = [[192, program_value, 0, 0], 0]
+        event = [[[192, program_value, 0, 0], 0]]
 
+        self.midi_receiver.send_control_event(event)
+
+    def set_pedal_off(self):
+
+        event = [[[176, 64, 0, 0], 0]]
         self.midi_receiver.send_control_event(event)
