@@ -16,7 +16,34 @@ class MIDIKeyRouter:
         self.midi_output = midi_output
 
     def handle_event(self, event):
-        midi_output.send_key_event([event])
+        midi_events = self.translate_usb_key_event_to_midi(event)
+        midi_output.send_key_event(midi_events)
+        
+    def translate_usb_key_event_to_midi(self, usb_key_event):
+        #split by 4
+        midi_events = []
+        print("pre: " + str(usb_key_event))
+
+        while(len(usb_key_event) > 3):
+            print(len(usb_key_event))
+            l = []
+            usb_key_event.pop(0)
+            for i in range(3):
+                l.append(usb_key_event.pop(0))
+            l.append(0)
+            midi_events.append(l)
+
+        print("post: " + str(midi_events))
+        return midi_events
+        
+    def split(arr, size):
+         arrs = []
+         while len(arr) > size:
+             pice = arr[:size]
+             arrs.append(pice)
+             arr   = arr[size:]
+         arrs.append(arr)
+         return arrs
         
 midi_output = midi_router.MidiRouter()
                         
