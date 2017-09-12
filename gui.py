@@ -30,7 +30,6 @@ class instrument_view():
 
         self.list_size = len(self.namelist)
         self.index = 0
-        self.listbox.selection_set(self.index)
 
         self.selLabelText = StringVar()
 
@@ -38,12 +37,13 @@ class instrument_view():
                          textvariable = self.selLabelText, \
                          font = selFont)
 
-        self.activateCurrent()
-
         self.selLabel.pack()
         self.listbox.pack()
 
     def run(self):
+        self.listbox.selection_set(self.index)
+        self.activateCurrent()
+
         self.master.update()
         self.master.mainloop()
 

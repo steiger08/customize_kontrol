@@ -7,6 +7,8 @@ class USBReader(threading.Thread):
         self.device = usb.core.find(idVendor=0x17CC, idProduct=0x1410)
         self.device.set_configuration()
 
+        print(self.device)
+
         self.cfg = self.device.get_active_configuration()
         assert self.cfg is not None
 

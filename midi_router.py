@@ -23,6 +23,7 @@ class MidiRouter(threading.Thread):
         self.active_control_outputs = {}
 
         threading.Thread.__init__(self)
+        self.print_device_info()
 
     def add_midi_device(self, name, io):
         device = None
@@ -86,10 +87,10 @@ class MidiRouter(threading.Thread):
         while True:
             events = self.event_get()
             # if there are new data from the MIDI controller
-
             i = self.input
             if i.poll():
                 midi_events = i.read(10)
+                print(midi_events)
                 for midi_event in midi_events:
                     if(midi_event[0][0] == 144 or midi_event[0][0] == 128 or midi_event[0][0] == 208): 
                         for key, o in self.active_key_outputs.items():
@@ -98,8 +99,13 @@ class MidiRouter(threading.Thread):
                         for key, o in self.active_control_outputs.items():
                             o.write(midi_events)
 
-
-
+    def send_control_event(self, midi_event):
+        for key, o in self.active_control_outputs.items():
+            o.write([midi_event])
+            
+    def send_key_event(self, midi_event):
+        for key, o in self.active_key_outputs.items():
+            o.write([midi_event])
 
 
 
