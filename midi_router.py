@@ -29,7 +29,7 @@ class MidiRouter(threading.Thread):
         for i in range( pygame.midi.get_count() ):
             info = pygame.midi.get_device_info(i)
             (dev_interface, dev_name, dev_is_input, dev_is_output, dev_opened) = info
-            if(str(dev_name) == str("b'" + name + "'")):
+            if(str(dev_name) == str("b'" + name + "'") and dev_is_output):
                  device = pygame.midi.Output( i )
                  self.outputs[name] = device
         assert device is not None

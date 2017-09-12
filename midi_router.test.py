@@ -3,11 +3,7 @@ import time
 
 midi_router1 = midi_router.MidiRouter()
                         
-input_names = ["Komplete Kontrol - 1"]
 output_names = ["midi1", "midi2"]
-
-for i in input_names:
-    midi_router1.add_midi_device(i, "input")
 
 for o in output_names:
     midi_router1.add_midi_device(o, "output")
