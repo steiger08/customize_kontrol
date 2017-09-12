@@ -1,78 +1,80 @@
 import usb.core
 import usb.util
 import threading
-class USBReader(threading.Thread):
 
-    def __init__(self, usb_event_handler):
-        self.device = usb.core.find(idVendor=0x17CC, idProduct=0x1410)
-        self.device.set_configuration()
+class USBReaderThread(threading.Thread):
+    def __init__(self, device, epAdress, maxInputSize, evtCallback):
+        self.device = device
+        self.epAdress = epAdress
+        self.maxInputSize = maxInputSize
+        self.evtCallback = evtCallback
 
-        print(self.device)
+        cfg = self.device.get_active_configuration()
+        assert cfg is not None
 
-        self.cfg = self.device.get_active_configuration()
-        assert self.cfg is not None
-
-        self.hid = usb.util.find_descriptor(self.cfg, find_all=True, bInterfaceNumber=2)
-        assert self.hid is not None
-
-        self.ep = usb.util.find_descriptor(self.cfg, find_all=True, bEndpointAddress=0x82)
-        assert self.ep is not None
-
-        self.wheel = 0
-        self.evt_hdlr = usb_event_handler
-
+        ep = usb.util.find_descriptor(cfg, find_all=True, bEndpointAddress=self.epAdress)
+        assert ep is not None
+        
         threading.Thread.__init__(self)
 
     def run(self):
         while True:
-            try:
-                data = self.device.read(0x82, 0x40, 0)
-                if(data[0] == 1):
-                    wheeldiff = data[6] - self.wheel
-                    if(wheeldiff != 0):
-                        if(wheeldiff > 8):
-                            wheeldiff = -1
-                        if(wheeldiff < -8):
-                            wheeldiff = 1
-                        if(wheeldiff > 0):
-                            self.evt_hdlr.wheelRight()
-                        else:
-                            self.evt_hdlr.wheelLeft()
-                        self.wheel = data[6]
-##                    if(data[2] == 8):
-##                        print("nav_right button")
-##                    if(data[2] == 32):
-##                        print("nav_left button")
-##                    if(data[2] == 16):
-##                        print("nav_down button")
-##                    if(data[2] == 128):
-##                        print("nav_up button")
-##                    if(data[2] == 64):
-##                        print("back button")
-##                    if(data[2] == 1):
-##                        print("stop button")
-##                    if(data[2] == 2):
-##                        print("rec button")
-##                    if(data[2] == 4):
-##                        print("play button")
-                    if(data[1] == 1):
-                        self.evt_hdlr.wheelButton()
-##                    if(data[1] == 32):
-##                        print("instance button")
-##                    if(data[1] == 16):
-##                        print("browse button")
-##                    if(data[1] == 4):
-##                        print("enter button")
-##                    if(data[3] == 1):
-##                        print("shift button")
-##                    if(data[3] == 128):
-##                        print("ffw button")      
-##                    if(data[3] == 64):
-##                        print("rwd button") 
-##                    if(data[3] == 8):
-##                        print("loop button")
-                
-            except usb.core.USBError as e:
-                data = None
-                print(e)
+            data = self.device.read(self.epAdress, self.maxInputSize, 0)
+            self.evtCallback(data)
 
+ENDPOINT_HMI_ADRESS = 0x82
+ENDPOINT_HMI_MAXSIZEPACKAGE = 0x40
+
+ENDPOINT_MIDI_ADRESS = 0x81
+ENDPOINT_MIDI_MAXSIZEPACKAGE = 0x200
+
+class USBReader():
+
+    def __init__(self, vendorId, productId):
+
+        self.device = usb.core.find(idVendor=vendorId, idProduct=productId)
+        self.device.set_configuration()
+
+        self.hmi_subscriber = []
+        self.midi_key_subscriber = []
+        self.midi_control_subscriber = []
+
+        self.cfg = self.device.get_active_configuration()
+
+        hmiReader = USBReaderThread(self.device, ENDPOINT_HMI_ADRESS, ENDPOINT_HMI_MAXSIZEPACKAGE, self.handle_hmi_event)
+        midiReader = USBReaderThread(self.device, ENDPOINT_MIDI_ADRESS, ENDPOINT_MIDI_MAXSIZEPACKAGE, self.handle_midi_event)
+        self.readerThreads = [hmiReader, midiReader]
+
+        self.wheel = 0
+        
+    def add_hmi_subscriber(self, subscriber):
+        self.hmi_subscriber.append(subscriber)
+
+    def add_midi_key_subscriber(self, subscriber):
+        self.midi_key_subscriber.append(subscriber)
+
+    def add_midi_control_subscriber(self, subscriber):
+        self.midi_control_subscriber.append(subscriber)
+
+    def handle_midi_event(self, event):
+        print(event)
+        if(event[1] == 144 or \
+           event[1] == 128 or \
+           event[1] == 208):
+               self.informSubscribers(self.midi_key_subscriber, event)
+        else:
+               self.informSubscribers(self.midi_control_subscriber, event)
+
+    def start(self):
+        for thread in self.readerThreads:
+            thread.start()
+
+    def informSubscribers(self, subscriber_list, event):
+        if(len(subscriber_list) != 0):
+            for sub in subscriber_list:
+                    sub.handle_event(event)
+
+    def handle_hmi_event(self, event):
+        self.informSubscribers(self.hmi_subscriber, event)
+
+       

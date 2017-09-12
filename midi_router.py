@@ -17,7 +17,6 @@ class MidiRouter(threading.Thread):
         self.event_post = pygame.fastevent.post
         pygame.midi.init()
 
-        self.input = None
         self.outputs = {}
         self.active_key_outputs = {}
         self.active_control_outputs = {}
@@ -25,18 +24,14 @@ class MidiRouter(threading.Thread):
         threading.Thread.__init__(self)
         self.print_device_info()
 
-    def add_midi_device(self, name, io):
+    def add_midi_device(self, name):
         device = None
         for i in range( pygame.midi.get_count() ):
             info = pygame.midi.get_device_info(i)
             (dev_interface, dev_name, dev_is_input, dev_is_output, dev_opened) = info
             if(str(dev_name) == str("b'" + name + "'")):
-                if(io == "input" and dev_is_input):
-                    device = pygame.midi.Input( i )
-                    self.input = device
-                if(io == "output" and dev_is_output):
-                    device = pygame.midi.Output( i )
-                    self.outputs[name] = device
+                 device = pygame.midi.Output( i )
+                 self.outputs[name] = device
         assert device is not None
 
     def activate_midi_key_route(self, name):
@@ -82,22 +77,6 @@ class MidiRouter(threading.Thread):
                 in_out = "(output)"
             print ("%2i: interface: %s, name: %s, opened: %s %s" %
                    (i, interf, name, opened, in_out))
-
-    def run(self):                
-        while True:
-            events = self.event_get()
-            # if there are new data from the MIDI controller
-            i = self.input
-            if i.poll():
-                midi_events = i.read(10)
-                print(midi_events)
-                for midi_event in midi_events:
-                    if(midi_event[0][0] == 144 or midi_event[0][0] == 128 or midi_event[0][0] == 208): 
-                        for key, o in self.active_key_outputs.items():
-                            o.write(midi_events)
-                    else:
-                        for key, o in self.active_control_outputs.items():
-                            o.write(midi_events)
 
     def send_control_event(self, midi_event):
         for key, o in self.active_control_outputs.items():
